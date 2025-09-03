@@ -1,0 +1,33 @@
+# Virtual environment
+venv/
+.env/
+*.env
+
+# Python cache & compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Jupyter & notebooks
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# VSCode / IDE settings
+.vscode/
+.idea/
+
+# Streamlit specific
+.streamlit/
+
+# Build / distribution
+build/
+dist/
+*.egg-info/
