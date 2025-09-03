@@ -9,7 +9,7 @@ def preprocess(data):
     dates = re.findall(pattern, data)
 
     df = pd.DataFrame({'user_message': messages, 'message_date': dates})
-    df['message_date'] = pd.to_datetime(df['message_date'], format='%m/%d/%y, %H:%M - ')
+    df['message_date'] = pd.to_datetime(df['message_date'], dayfirst=True, errors="coerce")
     df.rename(columns={'message_date': 'date'}, inplace=True)
 
     users = []
