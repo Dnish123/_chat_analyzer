@@ -1,7 +1,7 @@
 # WhatsApp Chat Analyzer 📊💬
 
 A Streamlit app to analyze exported WhatsApp chat data with insights like:
-- Total messages, words, media, and links
+- Total messages, words, media, and emojis
 - Most active users
 - WordCloud & common words
 - Emoji analysis
