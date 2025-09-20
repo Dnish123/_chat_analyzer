@@ -7,9 +7,15 @@ st.sidebar.title("Whatsapp Chat Analyzer")
 
 uploaded_file = st.sidebar.file_uploader("Choose a file")
 if uploaded_file is not None:
-    bytes_data =uploaded_file.getvalue()
-    data=bytes_data.decode("utf-8")
-    df= preprocessor.preprocess(data)
+    bytes_data = uploaded_file.getvalue()
+    try:
+        data = bytes_data.decode("utf-8")
+    except UnicodeDecodeError:
+        # Fallback to a different common encoding like ISO-8859-1
+        data = bytes_data.decode("ISO-8859-1")
+
+    df = preprocessor.preprocess(data)
+    # ... rest of your code
     #fetch unique users
 
     user_list = df['user'].unique().tolist()
