@@ -3,16 +3,25 @@ import preprocessor
 import helper
 import matplotlib.pyplot as plt
 import seaborn as sns
+st.title("Give your chat and get it analyzed!")
 st.sidebar.title("Whatsapp Chat Analyzer")
 
 uploaded_file = st.sidebar.file_uploader("Choose a file")
 if uploaded_file is not None:
     bytes_data = uploaded_file.getvalue()
-    try:
-        data = bytes_data.decode("utf-8")
-    except UnicodeDecodeError:
-        # Fallback to a different common encoding like ISO-8859-1
-        data = bytes_data.decode("ISO-8859-1")
+
+    # List of common encodings to try
+    encodings_to_try = ['utf-8', 'ISO-8859-1', 'cp1252']
+    data = None
+
+    for encoding in encodings_to_try:
+        try:
+            data = bytes_data.decode(encoding)
+            # If decoding is successful, break the loop
+            break
+        except UnicodeDecodeError:
+            # If an error occurs, try the next encoding in the list
+            continue
 
     df = preprocessor.preprocess(data)
     # ... rest of your code
