@@ -68,7 +68,7 @@ if uploaded_file is not None:
         st.pyplot(fig)
 
         # daily timeline
-        st.title("Monthly Timeline")
+        st.title("Daily Timeline")
         daily_timeline = helper.daily_timeline(selected_user, df)
         fig, ax = plt.subplots()
         ax.plot(daily_timeline['only_date'], daily_timeline['message'], color='black')
