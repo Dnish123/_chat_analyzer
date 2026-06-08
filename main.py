@@ -151,7 +151,7 @@ def _dark_fig(w=10, h=4):
 # ─────────────────────────────────────────────
 # SESSION STATE — persists AI results across reruns
 # ─────────────────────────────────────────────
-for _key in ["summary_result", "relationship_result", "signals_cache"]:
+for _key in ["summary_result", "relationship_result", "signals_cache", "analysis_run"]:
     if _key not in st.session_state:
         st.session_state[_key] = None
 
@@ -275,7 +275,10 @@ with st.sidebar:
     else:
         st.caption("Groq key not set\n(AI tab disabled)")
 
-if not run:
+if run:
+    st.session_state["analysis_run"] = True
+
+if not st.session_state.get("analysis_run"):
     st.info("👈 Select a user and click **Show Analysis** to get started.")
     st.stop()
 
