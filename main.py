@@ -255,7 +255,7 @@ with st.sidebar:
         if supa_url and supa_key:
             # Ping Supabase with a lightweight health check
             r = requests.get(
-                f"{supa_url}/rest/v1/",
+                f"{supa_url}/rest/v1/bucket",
                 headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}"},
                 timeout=5,
             )
