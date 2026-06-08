@@ -212,7 +212,7 @@ raw_bytes = uploaded_file.getvalue()
 try:
     save_result = helper.save_chat(raw_bytes, uploaded_file.name)
     if save_result["storage"] == "supabase":
-        st.sidebar.success("☁️ Chat backed up to Supabase")
+        st.sidebar.success("☁️ Chat is readed")
     else:
         st.sidebar.info("💾 Chat saved locally")
 except Exception:
@@ -259,7 +259,7 @@ with st.sidebar:
                 headers={"apikey": supa_key, "Authorization": f"Bearer {supa_key}"},
                 timeout=5,
             )
-            if r.status_code in (200, 404):   # 404 = connected but no tables, still means auth works
+            if r.status_code == 200:   # 404 = connected but no tables, still means auth works
                 st.success("☁️ Supabase connected")
             else:
                 st.warning(f"⚠️ Supabase returned {r.status_code}")
