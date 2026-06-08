@@ -46,4 +46,4 @@ urllib3==2.5.0
 watchdog==6.0.0
 wordcloud==1.9.4
 python-dotenv==1.2.2
-supabase==2.15.1
+supabase==2.10.0
