@@ -16,14 +16,11 @@ from wordcloud import WordCloud
 # Keys are read lazily (inside save_chat) so that load_dotenv() in main.py
 # always runs BEFORE we touch os.getenv — fixes the "keys empty at import" bug.
 _supabase = None
-
+_LOCAL_STORE = Path("uploaded_chats")  # ← this was missing!
 
 def _get_supabase():
     global _supabase
-    if _supabase is not None:
-        return _supabase
-
-    # Try st.secrets first, fall back to env
+    # Always re-read keys, never cache False permanently
     try:
         import streamlit as st
         url = st.secrets.get("SUPABASE_URL", "") or os.getenv("SUPABASE_URL", "")
@@ -32,17 +29,19 @@ def _get_supabase():
         url = os.getenv("SUPABASE_URL", "")
         key = os.getenv("SUPABASE_ANON_KEY", "")
 
+    print(f"[Supabase] URL found: {bool(url)}, KEY found: {bool(key)}")
+
     if url and key:
         try:
             from supabase import create_client
             _supabase = create_client(url, key)
+            return _supabase
         except Exception as e:
-            print(f"Supabase client creation failed: {e}")
-            _supabase = False
+            print(f"[Supabase] Client creation failed: {e}")
+            return None
     else:
-        print(f"Supabase keys missing — URL: {bool(url)}, KEY: {bool(key)}")
-        _supabase = False
-    return _supabase
+        print(f"[Supabase] Keys missing!")
+        return None
 
 
 def _file_id(raw_bytes: bytes) -> str:
