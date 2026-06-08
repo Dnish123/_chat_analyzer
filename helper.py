@@ -42,25 +42,30 @@ def _file_id(raw_bytes: bytes) -> str:
 
 
 def save_chat(raw_bytes: bytes, filename: str) -> dict:
-    fid  = _file_id(raw_bytes)
+    fid = _file_id(raw_bytes)
     dest = f"{fid}_{filename}"
 
     client = _get_supabase()
     if client:
         try:
-            client.storage.from_("whatsapp-chats").upload(
-                dest, raw_bytes,
-                file_options={"content-type": "text/plain"}
-            )
+            # Check if file already exists, skip upload if so
+            existing = client.storage.from_("whatsapp-chats").list()
+            existing_names = [f["name"] for f in existing]
+
+            if dest not in existing_names:
+                client.storage.from_("whatsapp-chats").upload(
+                    dest, raw_bytes,
+                    file_options={"content-type": "text/plain"}
+                )
             return {"storage": "supabase", "path": dest, "file_id": fid}
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Supabase upload error: {e}")  # you'll see this in terminal/logs
+            # fall through to local
 
     # Local fallback
     _LOCAL_STORE.mkdir(exist_ok=True)
-    (_LOCAL_STORE / dest).write_bytes(raw_bytes)    # ← was missing underscore bug
+    (_LOCAL_STORE / dest).write_bytes(raw_bytes)
     return {"storage": "local", "path": str(_LOCAL_STORE / dest), "file_id": fid}
-
 
 # ── Stop-words ────────────────────────────────────────────────────────────────
 
