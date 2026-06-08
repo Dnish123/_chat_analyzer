@@ -2,99 +2,62 @@ import re
 import pandas as pd
 from datetime import datetime
 
-
-# ──────────────────────────────────────────────
-# CANONICAL FORMAT (what we split on directly)
-# M/D/YY, HH:MM -   OR   M/D/YYYY, HH:MM -
-# ──────────────────────────────────────────────
+# ── Canonical format: M/D/YY, HH:MM -  or  M/D/YYYY, HH:MM - ────────────────
 _CANONICAL = r"\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{2}\s-\s"
 
-# ──────────────────────────────────────────────
-# ALL SUPPORTED RAW FORMATS
-# Each entry: (regex, strptime_formats_to_try)
-# Order matters — more specific first
-# ──────────────────────────────────────────────
+# ── All supported raw formats (more specific first) ───────────────────────────
 _RAW_FORMATS = [
-    # ── Already canonical (M/D/YY or M/D/YYYY, HH:MM - ) ──
-    # Detected separately — no conversion needed
-
-    # ── DD/MM/YYYY, HH:MM am/pm  (iOS India 4-digit year) ──
+    # iOS India 4-digit year with am/pm
     (r"\d{1,2}/\d{1,2}/\d{4},\s\d{1,2}:\d{2}\s(?:am|pm|AM|PM)\s-\s",
      ["%d/%m/%Y, %I:%M %p - "]),
-
-    # ── DD/MM/YYYY, HH:MM  (Android India 4-digit year, 24h) ──
+    # Android India 4-digit year 24h
     (r"\d{1,2}/\d{1,2}/\d{4},\s\d{1,2}:\d{2}\s-\s",
      ["%d/%m/%Y, %H:%M - "]),
-
-    # ── DD/MM/YY, HH:MM am/pm  (iOS India 2-digit year) ──
+    # iOS India 2-digit year with am/pm
     (r"\d{1,2}/\d{1,2}/\d{2},\s\d{1,2}:\d{2}\s(?:am|pm|AM|PM)\s-\s",
      ["%d/%m/%y, %I:%M %p - "]),
-
-    # ── M/D/YY, HH:MM am/pm  (iOS US) ──
+    # iOS US 2-digit year with am/pm
     (r"\d{1,2}/\d{1,2}/\d{2},\s\d{1,2}:\d{2}\s(?:am|pm|AM|PM)\s-\s",
      ["%m/%d/%y, %I:%M %p - "]),
-
-    # ── DD.MM.YYYY, HH:MM  (German dot-separator) ──
+    # German dot-separator
     (r"\d{1,2}\.\d{1,2}\.\d{4},\s\d{1,2}:\d{2}\s-\s",
      ["%d.%m.%Y, %H:%M - "]),
-
-    # ── YYYY-MM-DD, HH:MM  (ISO style) ──
+    # ISO style
     (r"\d{4}-\d{1,2}-\d{1,2},\s\d{1,2}:\d{2}\s-\s",
      ["%Y-%m-%d, %H:%M - "]),
-
-    # ── DD/MM/YYYY, HH:MM:SS  (with seconds) ──
+    # With seconds
     (r"\d{1,2}/\d{1,2}/\d{4},\s\d{1,2}:\d{2}:\d{2}\s-\s",
      ["%d/%m/%Y, %H:%M:%S - "]),
 ]
 
 
 def _detect_format(data: str):
-    """
-    Returns (pattern, fmts) of the first format that matches 5+ times,
-    or None if already canonical / unrecognised.
-    """
-    # Check if already canonical (M/D/YY, HH:MM - )
-    canonical_hits = len(re.findall(_CANONICAL, data[:5000]))
-    if canonical_hits >= 3:
-        return None   # already fine, skip normalisation
-
+    """Return (pattern, fmts) if conversion needed, None if already canonical."""
+    if len(re.findall(_CANONICAL, data[:5000])) >= 3:
+        return None
     for pattern, fmts in _RAW_FORMATS:
-        hits = re.findall(pattern, data[:5000], flags=re.IGNORECASE)
-        if len(hits) >= 3:
+        if len(re.findall(pattern, data[:5000], flags=re.IGNORECASE)) >= 3:
             return pattern, fmts
     return None
 
 
 def _normalise(data: str, pattern: str, fmts: list) -> str:
-    """
-    Convert matched timestamps to canonical M/D/YY, HH:MM - format.
-    Only called when the file is NOT already canonical.
-    """
     def replacer(match):
         raw = match.group(0)
         for fmt in fmts:
             try:
-                dt = datetime.strptime(raw, fmt)
-                # Use zero-padded month/day for consistent parsing later
-                return dt.strftime("%m/%d/%y, %H:%M - ")
+                return datetime.strptime(raw, fmt).strftime("%m/%d/%y, %H:%M - ")
             except ValueError:
                 continue
-        return raw   # leave untouched if nothing works
-
+        return raw
     return re.sub(pattern, replacer, data, flags=re.IGNORECASE)
 
 
-# ──────────────────────────────────────────────
-# MAIN PREPROCESS
-# ──────────────────────────────────────────────
-
 def preprocess(data: str) -> pd.DataFrame:
-
-    # Step 1 — normalise only if not already canonical
+    # Step 1 — normalise only if needed
     fmt_info = _detect_format(data)
     if fmt_info is not None:
-        pattern, fmts = fmt_info
-        data = _normalise(data, pattern, fmts)
+        data = _normalise(data, *fmt_info)
 
     # Step 2 — split on canonical pattern
     messages_raw = re.split(_CANONICAL, data)[1:]
@@ -103,12 +66,12 @@ def preprocess(data: str) -> pd.DataFrame:
     if not messages_raw:
         raise ValueError(
             "Could not parse any messages. "
-            "Please make sure you exported the chat as plain text (without media)."
+            "Please export the chat as plain text (without media) from WhatsApp."
         )
 
     df = pd.DataFrame({"user_message": messages_raw, "message_date": dates_raw})
 
-    # Step 3 — parse dates
+    # Step 3 — parse dates (no deprecated infer_datetime_format)
     parsed = False
     for fmt in ("%m/%d/%y, %H:%M - ", "%m/%d/%Y, %H:%M - "):
         try:
@@ -119,13 +82,12 @@ def preprocess(data: str) -> pd.DataFrame:
             continue
     if not parsed:
         try:
-            df["message_date"] = pd.to_datetime(
-                df["message_date"], infer_datetime_format=True
-            )
+            # pandas ≥2.0 compatible fallback
+            df["message_date"] = pd.to_datetime(df["message_date"], format="mixed")
         except Exception:
             raise ValueError(
-                "Timestamps were found but could not be parsed. "
-                "Please open an issue with a sample of your chat format."
+                "Timestamps found but could not be parsed. "
+                "Please share a sample of your chat format."
             )
 
     df.rename(columns={"message_date": "date"}, inplace=True)
@@ -133,8 +95,7 @@ def preprocess(data: str) -> pd.DataFrame:
     # Step 4 — split user / message
     users, messages = [], []
     for msg in df["user_message"]:
-        # Strip leading ' - ' that some formats leave behind
-        msg = re.sub(r"^-\s", "", msg)
+        msg   = re.sub(r"^-\s", "", msg)          # strip leading " - " artifact
         parts = re.split(r"^([^:]+):\s", msg, maxsplit=1)
         if len(parts) >= 3:
             users.append(parts[1].strip())
