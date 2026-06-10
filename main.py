@@ -214,7 +214,7 @@ try:
     if save_result["storage"] == "supabase":
         st.sidebar.success("☁️ Chat is readed")
     else:
-        st.sidebar.info("💾 Chat saved locally")
+        st.sidebar.info("💾 Chat is readed ")
 except Exception:
     pass
 
